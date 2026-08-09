@@ -1,0 +1,7 @@
+# Ignore local databases and build cache from Vercel Python Serverless Bundle
+*.db
+backend/careershield.db
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/services/__pycache__/
+backend/app/ml_models/__pycache__/
