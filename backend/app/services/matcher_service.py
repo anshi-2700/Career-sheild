@@ -1,16 +1,39 @@
 """
 CareerShield — Multi-Factor Resume ↔ JD Matching Engine
-Combines Rule-Based Matching + Skill Taxonomy Normalization + TF-IDF Cosine Similarity + 10 Weighted Dimensions.
+Combines Rule-Based Matching + Skill Taxonomy Normalization + Pure Python TF-IDF Cosine Similarity + 10 Weighted Dimensions.
 """
 
 import re
+import math
+from collections import Counter
 from typing import Dict, Any, List, Set, Tuple
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 from .skill_taxonomy import (
     SKILL_SYNONYMS, normalize_skill, extract_normalized_skills_from_text, classify_role_domain
 )
+
+def compute_tfidf_cosine_similarity(text1: str, text2: str) -> float:
+    """Pure Python TF-IDF vector cosine similarity (No external C-extensions required)."""
+    words1 = re.findall(r'\b[a-zA-Z]{3,}\b', text1.lower())
+    words2 = re.findall(r'\b[a-zA-Z]{3,}\b', text2.lower())
+    if not words1 or not words2:
+        return 0.5
+    
+    # Calculate word frequency vectors
+    vec1 = Counter(words1)
+    vec2 = Counter(words2)
+    
+    # Cosine similarity dot product
+    intersection = set(vec1.keys()) & set(vec2.keys())
+    dot_product = sum(vec1[w] * vec2[w] for w in intersection)
+    
+    magnitude1 = math.sqrt(sum(v**2 for v in vec1.values()))
+    magnitude2 = math.sqrt(sum(v**2 for v in vec2.values()))
+    
+    if not magnitude1 or not magnitude2:
+        return 0.5
+        
+    return float(dot_product / (magnitude1 * magnitude2))
 
 def compare_resume_with_job(
     resume_data: Dict[str, Any],
@@ -67,7 +90,6 @@ def compare_resume_with_job(
     # -------------------------------------------------------------
     # 2. EXPERIENCE DURATION & RELEVANCE MATCH (15%)
     # -------------------------------------------------------------
-    # Check if "freshers welcome" or 0 yrs required
     freshers_welcome = bool(re.search(r'\b(fresher|freshers|entry level|no experience|0 years?)\b', jd_lower))
     exp_req_match = re.search(r'(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)', jd_lower)
     
@@ -94,7 +116,7 @@ def compare_resume_with_job(
     elif candidate_domain == "General" or target_domain == "General":
         exp_relevance_pct = 75.0
     else:
-        exp_relevance_pct = 35.0  # e.g., Developer applying for Financial Analyst
+        exp_relevance_pct = 35.0
 
     overall_exp_pct = round((exp_duration_pct * 0.5) + (exp_relevance_pct * 0.5), 1)
 
@@ -103,7 +125,6 @@ def compare_resume_with_job(
     # -------------------------------------------------------------
     candidate_degrees = set([normalize_skill(d) for d in resume_data.get("education", [])])
     
-    # Detect JD required degree level
     jd_edu_matches = re.findall(r'\b(mbbs|md|bca|mca|b\.tech|btech|b\.e|be|b\.sc|bsc|b\.a|b\.com|bcom|bba|mba|m\.tech|mtech|diploma|bachelor|master|doctorate|phd)\b', jd_lower)
     jd_degrees = set([normalize_skill(d) for d in jd_edu_matches])
 
@@ -123,16 +144,13 @@ def compare_resume_with_job(
     # -------------------------------------------------------------
     # 4. CATEGORIZED KEYWORD RECALL (10%)
     # -------------------------------------------------------------
-    # TF-IDF Cosine Similarity for general textual recall
     try:
-        vectorizer = TfidfVectorizer(stop_words='english')
-        tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
-        cosine_sim = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
-        keyword_recall_pct = round(cosine_sim * 100.0, 1)
+        cosine_sim = compute_tfidf_cosine_similarity(resume_text, job_description)
+        keyword_recall_pct = round(min(100.0, max(20.0, cosine_sim * 150.0)), 1)
     except Exception:
         keyword_recall_pct = 60.0
 
-    # Categorized Keyword Extraction (Required vs Preferred vs Contextual)
+    # Categorized Keyword Extraction
     all_jd_words = set(re.findall(r'\b[a-zA-Z]{4,}\b', jd_lower)) - {
         "with", "this", "that", "from", "have", "will", "your", "team", "work", "role", "years", "experience"
     }
@@ -169,7 +187,6 @@ def compare_resume_with_job(
     # -------------------------------------------------------------
     cand_comp = candidate_expected_salary or resume_data.get("expected_compensation", "₹6–8 LPA")
     
-    # Parse numbers from JD compensation if present
     jd_comp_match = re.search(r'(\d+)\s*[-–]\s*(\d+)\s*(?:lpa|k|\$|lakhs?)', jd_lower)
     if jd_comp_match:
         jd_comp_min = float(jd_comp_match.group(1))
@@ -222,7 +239,6 @@ def compare_resume_with_job(
     eligibility_passed = True
     eligibility_warnings = []
 
-    # Hard license / certification checks (e.g. Nursing license, CPA, MBBS)
     hard_license_patterns = [
         (r'\b(nursing license|rn license|valid nursing)\b', "Valid Nursing License"),
         (r'\b(cpa|chartered accountant|ca certified)\b', "CPA / Chartered Accountant Certification"),

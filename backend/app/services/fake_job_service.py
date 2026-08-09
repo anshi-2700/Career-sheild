@@ -1,6 +1,5 @@
 import re
 import io
-import numpy as np
 from urllib.parse import urlparse
 from PIL import Image
 import fitz # PyMuPDF
@@ -10,7 +9,15 @@ try:
 except Exception:
     pytesseract = None
 
-from ..ml_models.train_fake_job import get_model
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+try:
+    from ..ml_models.train_fake_job import get_model
+except Exception:
+    get_model = None
 
 FREE_EMAIL_DOMAINS = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "protonmail.com", "yandex.com"}
 
