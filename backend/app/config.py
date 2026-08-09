@@ -8,7 +8,7 @@ load_dotenv()
 
 def sanitize_db_url(url: str) -> str:
     if not url:
-        return "sqlite:///./careershield.db"
+        return "sqlite:////tmp/careershield.db"
     
     # Strip whitespace and quotes
     url = url.strip().strip("'").strip('"')
@@ -36,6 +36,11 @@ def sanitize_db_url(url: str) -> str:
         except Exception as e:
             print("URL sanitize error:", e)
 
+    # Ensure sslmode=require is present for Supabase / PostgreSQL cloud connections
+    if ("supabase" in url or "postgresql" in url) and "sslmode" not in url:
+        sep = "&" if "?" in url else "?"
+        url += f"{sep}sslmode=require"
+
     return url
 
 class Settings:
@@ -45,8 +50,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 # 24 hours
 
-    # Supabase / PostgreSQL or SQLite Database Connection String
-    DATABASE_URL: str = sanitize_db_url(os.getenv("DATABASE_URL", "sqlite:///./careershield.db"))
+    # Supabase / PostgreSQL or Writable /tmp SQLite Database Connection String
+    DATABASE_URL: str = sanitize_db_url(os.getenv("DATABASE_URL", "sqlite:////tmp/careershield.db"))
 
     # Supabase Credentials (Optional)
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "").strip()
