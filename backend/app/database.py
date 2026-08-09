@@ -1,8 +1,29 @@
 import os
+import shutil
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import OperationalError, DBAPIError, InvalidatePoolError
 from .config import settings
+
+def copy_packaged_database_if_needed():
+    """
+    On Vercel Serverless environment, copies packaged careershield.db to writable /tmp/careershield.db
+    if /tmp/careershield.db does not exist yet.
+    """
+    tmp_path = "/tmp/careershield.db"
+    candidates = ["careershield.db", "backend/careershield.db", "../careershield.db"]
+    
+    if not os.path.exists(tmp_path):
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                try:
+                    shutil.copyfile(candidate, tmp_path)
+                    print(f"AUTOMATED SETUP: Copied pre-populated {candidate} to writable {tmp_path}")
+                    break
+                except Exception as e:
+                    print(f"Error copying {candidate} to {tmp_path}:", e)
+
+copy_packaged_database_if_needed()
 
 def create_db_engine():
     db_url = settings.DATABASE_URL

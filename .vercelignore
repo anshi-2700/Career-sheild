@@ -1,6 +1,4 @@
-# Ignore local databases and build cache from Vercel Python Serverless Bundle
-*.db
-backend/careershield.db
+# Ignore pycache and node_modules from Vercel Python Serverless Bundle
 backend/__pycache__/
 backend/app/__pycache__/
 backend/app/services/__pycache__/

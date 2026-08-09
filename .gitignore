@@ -12,8 +12,11 @@ venv/
 .venv/
 env/
 ENV/
-*.db
 *.sqlite3
+
+# Include pre-populated CareerShield database
+!careershield.db
+!backend/careershield.db
 
 # Node.js & Frontend Build Artifacts
 node_modules/
