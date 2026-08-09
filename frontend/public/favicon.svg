@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 550" width="100%" height="100%">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003566" />
+      <stop offset="100%" stop-color="#00509d" />
+    </linearGradient>
+    <linearGradient id="tieDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00509d" />
+      <stop offset="100%" stop-color="#0077b6" />
+    </linearGradient>
+    <linearGradient id="tieMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0096c7" />
+      <stop offset="100%" stop-color="#00b4d8" />
+    </linearGradient>
+    <linearGradient id="tieLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#48cae4" />
+      <stop offset="100%" stop-color="#90e0ef" />
+    </linearGradient>
+  </defs>
+
+  <path d="M 250 15 C 370 70 470 70 485 80 C 490 260 440 430 250 535 C 60 430 10 260 15 80 C 30 70 130 70 250 15 Z" fill="url(#shieldGrad)" />
+  <path d="M 250 55 C 350 100 435 100 445 110 C 450 265 405 405 250 492 C 95 405 50 265 55 110 C 65 100 150 100 250 55 Z" fill="#FFFFFF" />
+  <path d="M 205 130 L 295 130 L 275 185 L 225 185 Z" fill="url(#tieDark)" />
+  <path d="M 223 192 L 277 192 L 285 240 L 215 240 Z" fill="url(#tieDark)" />
+  <path d="M 213 250 L 287 250 L 293 310 L 207 310 Z" fill="url(#tieMid)" />
+  <path d="M 205 320 L 295 320 L 250 435 Z" fill="url(#tieLight)" />
+</svg>
