@@ -1,14 +1,21 @@
 import os
 import re
+import tempfile
 import urllib.parse
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
+def get_default_sqlite_url() -> str:
+    if os.name == 'nt':
+        return "sqlite:///./careershield.db"
+    tmp_file = os.path.join(tempfile.gettempdir(), "careershield.db").replace("\\", "/")
+    return f"sqlite:///{tmp_file}"
+
 def sanitize_db_url(url: str) -> str:
     if not url:
-        return "sqlite:////tmp/careershield.db"
+        return get_default_sqlite_url()
     
     # Strip whitespace and quotes
     url = url.strip().strip("'").strip('"')
@@ -50,8 +57,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 # 24 hours
 
-    # Supabase / PostgreSQL or Writable /tmp SQLite Database Connection String
-    DATABASE_URL: str = sanitize_db_url(os.getenv("DATABASE_URL", "sqlite:////tmp/careershield.db"))
+    # Supabase / PostgreSQL or Cross-Platform Writable SQLite Database Connection String
+    DATABASE_URL: str = sanitize_db_url(os.getenv("DATABASE_URL", get_default_sqlite_url()))
 
     # Supabase Credentials (Optional)
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "").strip()

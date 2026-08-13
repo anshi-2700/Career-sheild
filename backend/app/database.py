@@ -1,27 +1,39 @@
 import os
 import shutil
+import tempfile
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import OperationalError, DBAPIError, InvalidatePoolError
 from .config import settings
 
+def get_sqlite_fallback_url() -> str:
+    """
+    Returns platform-safe SQLite fallback database URL.
+    On Windows local dev: 'sqlite:///./careershield.db'
+    On Linux/Vercel/Render: 'sqlite:///' + tempfile path
+    """
+    if os.name == 'nt':
+        return "sqlite:///./careershield.db"
+    tmp_file = os.path.join(tempfile.gettempdir(), "careershield.db").replace("\\", "/")
+    return f"sqlite:///{tmp_file}"
+
 def copy_packaged_database_if_needed():
     """
-    On Vercel Serverless environment, copies packaged careershield.db to writable /tmp/careershield.db
-    if /tmp/careershield.db does not exist yet.
+    On Linux/Vercel Serverless environment, copies packaged careershield.db to writable /tmp/careershield.db
+    if target DB does not exist yet.
     """
-    tmp_path = "/tmp/careershield.db"
-    candidates = ["careershield.db", "backend/careershield.db", "../careershield.db"]
-    
-    if not os.path.exists(tmp_path):
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                try:
-                    shutil.copyfile(candidate, tmp_path)
-                    print(f"AUTOMATED SETUP: Copied pre-populated {candidate} to writable {tmp_path}")
-                    break
-                except Exception as e:
-                    print(f"Error copying {candidate} to {tmp_path}:", e)
+    if os.name != 'nt':
+        tmp_db_file = os.path.join(tempfile.gettempdir(), "careershield.db")
+        candidates = ["careershield.db", "backend/careershield.db", "../careershield.db"]
+        if not os.path.exists(tmp_db_file):
+            for candidate in candidates:
+                if os.path.exists(candidate):
+                    try:
+                        shutil.copyfile(candidate, tmp_db_file)
+                        print(f"AUTOMATED SETUP: Copied pre-populated {candidate} to writable {tmp_db_file}")
+                        break
+                    except Exception as e:
+                        print(f"Error copying {candidate} to {tmp_db_file}:", e)
 
 copy_packaged_database_if_needed()
 
@@ -55,13 +67,13 @@ def create_db_engine():
             last_err = e
             print(f"PostgreSQL connection attempt failed for target ({target_url[:35]}...):", e)
     
+    fallback_url = get_sqlite_fallback_url()
     print("NOTICE: Supabase PostgreSQL direct connection failed:", last_err)
-    print("AUTOMATED FAILOVER: Switching to writable Vercel /tmp SQLite database (sqlite:////tmp/careershield.db)")
-    fallback_url = "sqlite:////tmp/careershield.db"
+    print(f"AUTOMATED FAILOVER: Switching to local SQLite database ({fallback_url})")
     return create_engine(fallback_url, connect_args={"check_same_thread": False})
 
 engine = create_db_engine()
-fallback_engine = create_engine("sqlite:////tmp/careershield.db", connect_args={"check_same_thread": False})
+fallback_engine = create_engine(get_sqlite_fallback_url(), connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 FallbackSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=fallback_engine)
